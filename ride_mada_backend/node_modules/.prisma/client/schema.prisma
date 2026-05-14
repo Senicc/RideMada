@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  ON_RIDE
+}
+
+enum VehicleType {
+  SEDAN
+  SUV
+  MINIBUS
+  MOTORCYCLE
+}
+
+enum RideStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model User {
+  id         String   @id @default(uuid())
+  phone      String   @unique
+  email      String?  @unique
+  name       String
+  password   String
+  photo      String?
+  role       Role     @default(PASSENGER)
+  isVerified Boolean  @default(false)
+  fcmToken   String?
+  rating     Float    @default(5.0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  driver   Driver?
+  bookings Booking[]
+
+  reviewsGiven    Review[] @relation("Reviewer")
+  reviewsReceived Review[] @relation("Reviewed")
+
+  sentMessages     Message[] @relation("Sender")
+  receivedMessages Message[] @relation("Receiver")
+
+  favorites       Favorite[]
+  reportsMade     Report[]   @relation("ReportsMade")
+  reportsReceived Report[]   @relation("ReportsReceived")
+}
+
+model Driver {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  status     DriverStatus @default(OFFLINE)
+  currentLat Float?
+  currentLng Float?
+  isApproved Boolean      @default(false)
+  documents  Json
+  rating     Float        @default(5.0)
+
+  vehicles Vehicle[]
+  rides    Ride[]
+}
+
+model Vehicle {
+  id String @id @default(uuid())
+
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id])
+
+  brand    String
+  model    String
+  color    String
+  plate    String      @unique
+  seats    Int
+  type     VehicleType
+  isActive Boolean     @default(true)
+
+  rides Ride[]
+}
+
+model Ride {
+  id String @id @default(uuid())
+
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id])
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  departureLat Float
+  departureLng Float
+  arrivalLat   Float
+  arrivalLng   Float
+
+  departureAddress String
+  arrivalAddress   String
+  departureTime    DateTime
+
+  price          Decimal
+  availableSeats Int
+
+  status RideStatus @default(PENDING)
+
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id String @id @default(uuid())
+
+  rideId String
+  ride   Ride   @relation(fields: [rideId], references: [id])
+
+  passengerId String
+  passenger   User   @relation(fields: [passengerId], references: [id])
+
+  seats  Int
+  status BookingStatus @default(CONFIRMED)
+
+  createdAt DateTime @default(now())
+
+  payments Payment[]
+}
+
+model Message {
+  id String @id @default(uuid())
+
+  senderId   String
+  receiverId String
+  rideId     String?
+
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender   User @relation("Sender", fields: [senderId], references: [id])
+  receiver User @relation("Receiver", fields: [receiverId], references: [id])
+}
+
+model Review {
+  id String @id @default(uuid())
+
+  reviewerId String
+  reviewedId String
+  rideId     String?
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime @default(now())
+
+  reviewer User @relation("Reviewer", fields: [reviewerId], references: [id])
+  reviewed User @relation("Reviewed", fields: [reviewedId], references: [id])
+}
+
+model Favorite {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type     String // DRIVER or DESTINATION
+  targetId String
+
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id String @id @default(uuid())
+
+  reporterId String
+  reportedId String
+
+  reporter User @relation("ReportsMade", fields: [reporterId], references: [id])
+  reported User @relation("ReportsReceived", fields: [reportedId], references: [id])
+
+  reason String
+  status String @default("PENDING")
+
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  userId    String
+
+  amount        Decimal
+  method        String // CASH, MVOLA, ORANGE, AIRTEL
+  status        String
+  transactionId String?
+
+  createdAt DateTime @default(now())
+}
