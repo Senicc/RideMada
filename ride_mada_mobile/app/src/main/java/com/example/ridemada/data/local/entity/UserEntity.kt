@@ -1,9 +1,13 @@
+package com.ridemada.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
 @Entity(tableName = "users")
 data class UserEntity(
     @PrimaryKey val id: String,
     val name: String,
     val phone: String,
-    val photo: String?,
+    val photo: String? = null,
     val role: String,
-    val rating: Float
 )

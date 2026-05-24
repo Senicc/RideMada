@@ -1,3 +1,5 @@
+import 'express';
+
 declare global {
   namespace Express {
     interface Request {
@@ -6,9 +8,7 @@ declare global {
         role?: string;
         iat?: number;
         exp?: number;
-        [key: string]: unknown;
       };
-      file?: Express.Multer.File;
     }
   }
 }

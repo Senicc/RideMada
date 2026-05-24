@@ -10,8 +10,25 @@ interface SocketUser {
 
 type AuthedSocket = Socket & { user: SocketUser };
 
-export const initializeSocket = (io: Server) => {
+async function userCanAccessRide(userId: string, rideId: string): Promise<boolean> {
+  const ride = await prisma.ride.findUnique({
+    where: { id: rideId },
+    include: { driver: true, bookings: { where: { status: 'CONFIRMED' } } },
+  });
+  if (!ride) return false;
+  if (ride.driver.userId === userId) return true;
+  return ride.bookings.some((b) => b.passengerId === userId);
+}
 
+async function userIsRideDriver(userId: string, rideId: string): Promise<boolean> {
+  const ride = await prisma.ride.findUnique({
+    where: { id: rideId },
+    include: { driver: true },
+  });
+  return ride?.driver.userId === userId;
+}
+
+export const initializeSocket = (io: Server) => {
   io.use(authenticateSocket);
 
   io.on('connection', (socket) => {
@@ -21,109 +38,120 @@ export const initializeSocket = (io: Server) => {
       return;
     }
     const user = authed.user;
-    console.log(`🟢 User connected: ${user.id} | Socket: ${socket.id}`);
 
-    // Rejoindre sa room personnelle
     socket.join(`user_${user.id}`);
 
-    // ==================== TRACKING GPS ====================
     socket.on('updateDriverLocation', async (data: { lat: number; lng: number; rideId?: string }) => {
       try {
+        if (user.role !== 'DRIVER') return;
+
+        const driver = await prisma.driver.findUnique({ where: { userId: user.id } });
+        if (!driver?.isApproved) return;
+
         await prisma.driver.update({
           where: { userId: user.id },
-          data: {
-            currentLat: data.lat,
-            currentLng: data.lng,
-            status: 'ONLINE'
-          }
+          data: { currentLat: data.lat, currentLng: data.lng, status: 'ONLINE' },
         });
 
-        // Broadcast à tous les passagers à proximité
-        io.emit('driverLocationUpdate', {
+        const payload = {
           driverId: user.id,
           lat: data.lat,
           lng: data.lng,
-          timestamp: new Date()
-        });
+          timestamp: new Date(),
+        };
 
-        // Si en course → broadcast dans la room du trajet
         if (data.rideId) {
-          io.to(`ride_${data.rideId}`).emit('rideLocationUpdate', {
-            driverId: user.id,
-            lat: data.lat,
-            lng: data.lng
-          });
+          io.to(`ride_${data.rideId}`).emit('driverLocationUpdate', payload);
+        } else {
+          socket.broadcast.emit('driverLocationUpdate', payload);
         }
-      } catch (error) {
+      } catch {
         socket.emit('error', { message: 'Erreur mise à jour position' });
       }
     });
 
-    // ==================== CHAT TEMPS RÉEL ====================
-    socket.on('joinRideRoom', (rideId: string) => {
+    socket.on('joinRideRoom', async (rideId: string) => {
+      if (!rideId || !(await userCanAccessRide(user.id, rideId))) {
+        socket.emit('error', { message: 'Accès à la course refusé' });
+        return;
+      }
       socket.join(`ride_${rideId}`);
       socket.emit('joinedRoom', { rideId });
     });
 
     socket.on('sendMessage', async (data: { receiverId: string; rideId?: string; content: string }) => {
       try {
+        const content = (data.content ?? '').trim().slice(0, 2000);
+        if (!content || !data.receiverId) return;
+
+        if (data.rideId && !(await userCanAccessRide(user.id, data.rideId))) {
+          socket.emit('error', { message: 'Message refusé' });
+          return;
+        }
+
         const message = await prisma.message.create({
           data: {
             senderId: user.id,
             receiverId: data.receiverId,
             rideId: data.rideId,
-            content: data.content
+            content,
           },
-          include: { sender: true }
+          include: { sender: { select: { id: true, name: true, photo: true } } },
         });
 
-        // Envoyer au destinataire
         io.to(`user_${data.receiverId}`).emit('newMessage', message);
-        
-        // Envoyer dans la room du trajet si applicable
         if (data.rideId) {
           io.to(`ride_${data.rideId}`).emit('newMessage', message);
         }
-      } catch (error) {
-        socket.emit('error', { message: "Échec envoi message" });
+      } catch {
+        socket.emit('error', { message: 'Échec envoi message' });
       }
     });
 
-    // ==================== ÉVÉNEMENTS COURSE ====================
-    socket.on('driverStartedRide', (rideId: string) => {
-      io.to(`ride_${rideId}`).emit('rideStarted', { rideId, driverId: user.id });
+    socket.on('driverStartedRide', async (rideId: string) => {
+      if (await userIsRideDriver(user.id, rideId)) {
+        io.to(`ride_${rideId}`).emit('rideStarted', { rideId, driverId: user.id });
+      }
     });
 
-    socket.on('driverArrived', (rideId: string) => {
-      io.to(`ride_${rideId}`).emit('driverArrived', { rideId });
+    socket.on('driverArrived', async (rideId: string) => {
+      if (await userIsRideDriver(user.id, rideId)) {
+        io.to(`ride_${rideId}`).emit('driverArrived', { rideId });
+      }
     });
 
     socket.on('rideCompleted', async (rideId: string) => {
+      if (!(await userIsRideDriver(user.id, rideId))) return;
       await prisma.ride.update({
         where: { id: rideId },
-        data: { status: 'COMPLETED' }
+        data: { status: 'COMPLETED' },
       });
       io.to(`ride_${rideId}`).emit('rideCompleted', { rideId });
     });
 
-    // ==================== STATUT CONDUCTEUR ====================
     socket.on('updateDriverStatus', async (status: 'ONLINE' | 'OFFLINE' | 'ON_RIDE') => {
-      await prisma.driver.update({
-        where: { userId: user.id },
-        data: { status }
-      });
-      io.emit('driverStatusChanged', { driverId: user.id, status });
-    });
-
-    // ==================== DISCONNECTION ====================
-    socket.on('disconnect', async () => {
-      console.log(`🔴 User disconnected: ${user.id}`);
+      if (user.role !== 'DRIVER') return;
       try {
         await prisma.driver.update({
           where: { userId: user.id },
-          data: { status: 'OFFLINE' }
+          data: { status },
         });
-      } catch (_) {}
+        socket.broadcast.emit('driverStatusChanged', { driverId: user.id, status });
+      } catch {
+        /* passager sans profil conducteur */
+      }
+    });
+
+    socket.on('disconnect', async () => {
+      if (user.role !== 'DRIVER') return;
+      try {
+        await prisma.driver.update({
+          where: { userId: user.id },
+          data: { status: 'OFFLINE' },
+        });
+      } catch {
+        /* ignore */
+      }
     });
   });
 };

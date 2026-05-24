@@ -49,7 +49,14 @@ router.post('/login', [
 ], validation_1.validate, authController.login);
 router.post('/refresh', authController.refreshToken);
 router.post('/verify-otp', authController.verifyOTP);
-router.post('/forgot-password', authController.forgotPassword);
+router.post('/forgot-password', [
+    (0, express_validator_1.body)('phone').notEmpty(),
+], validation_1.validate, authController.forgotPassword);
+router.post('/reset-password', [
+    (0, express_validator_1.body)('phone').notEmpty(),
+    (0, express_validator_1.body)('otp').notEmpty(),
+    (0, express_validator_1.body)('newPassword').isLength({ min: 6 }),
+], validation_1.validate, authController.resetPassword);
 router.post('/logout', authController.logout);
 exports.default = router;
 //# sourceMappingURL=auth.routes.js.map

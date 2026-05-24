@@ -1,13 +1,27 @@
 package com.ridemada.di
 
 import android.content.Context
+import androidx.room.Room
+import com.google.gson.Gson
+import com.ridemada.BuildConfig
+import com.ridemada.data.local.RideMadaDatabase
+import com.ridemada.data.local.SessionDataStore
+import com.ridemada.data.local.dao.RideDao
+import com.ridemada.data.local.TokenManager
+import com.ridemada.data.remote.AuthInterceptor
 import com.ridemada.data.remote.RideMadaApi
+import com.ridemada.data.remote.TokenRefreshInterceptor
+import com.ridemada.data.repository.AdminRepositoryImpl
 import com.ridemada.data.repository.AuthRepositoryImpl
 import com.ridemada.data.repository.MapRepositoryImpl
+import com.ridemada.domain.repository.AdminRepository
+import com.ridemada.data.sync.SyncManager
 import com.ridemada.domain.repository.AuthRepository
-import com.ridemada.domain.repository.MapRepositoryImpl
+import com.ridemada.domain.repository.MapRepository
 import com.ridemada.services.LocationService
 import com.ridemada.services.SocketService
+import com.ridemada.utils.NetworkConnectivityObserver
+import com.ridemada.utils.NetworkConnectivityObserverImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,11 +40,20 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideGson(): Gson = Gson()
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenRefreshInterceptor: TokenRefreshInterceptor,
+    ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
         }
         return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(tokenRefreshInterceptor)
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -41,7 +64,7 @@ object AppModule {
     @Singleton
     fun provideRideMadaApi(okHttpClient: OkHttpClient): RideMadaApi {
         return Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:5000/api/") // Change en production
+            .baseUrl(BuildConfig.API_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -51,13 +74,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): RideMadaDatabase {
-        return Room.databaseBuilder(
-            context,
-            RideMadaDatabase::class.java,
-            "ridemada_db"
-        ).fallbackToDestructiveMigration()
+        return Room.databaseBuilder(context, RideMadaDatabase::class.java, "ridemada_db")
+            .fallbackToDestructiveMigration()
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun provideRideDao(database: RideMadaDatabase): RideDao = database.rideDao()
 
     @Provides
     @Singleton
@@ -67,35 +91,21 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideAuthRepository(impl: AuthRepositoryImpl): AuthRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideMapRepository(impl: MapRepositoryImpl): MapRepository = impl
+
+    @Provides
+    @Singleton
+    fun provideAdminRepository(impl: AdminRepositoryImpl): AdminRepository = impl
+
+    @Provides
+    @Singleton
     fun provideSyncManager(
         networkObserver: NetworkConnectivityObserver,
         mapRepository: MapRepository,
         rideDao: RideDao,
-        api: RideMadaApi
-    ): SyncManager {
-        return SyncManager(networkObserver, mapRepository, rideDao, api)
-    }
-
-    @Provides
-    @Singleton
-    fun provideRideDao(database: RideMadaDatabase): RideDao = database.rideDao()
-
-    @Provides
-    @Singleton
-    fun provideAuthRepository(api: RideMadaApi): AuthRepository =
-        AuthRepositoryImpl(api)
-
-    @Provides
-    @Singleton
-    fun provideMapRepository(api: RideMadaApi, socketService: SocketService): com.ridemada.domain.repository.MapRepositoryImpl =
-        MapRepositoryImpl(api, socketService)
-
-    @Provides
-    @Singleton
-    fun provideSocketService(): SocketService = SocketService()
-
-    @Provides
-    @Singleton
-    fun provideLocationService(@ApplicationContext context: Context): LocationService =
-        LocationService(context)
+    ): SyncManager = SyncManager(networkObserver, mapRepository, rideDao)
 }

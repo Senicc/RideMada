@@ -1,49 +1,82 @@
 [versions]
+agp = "8.10.1"
+kotlin = "2.0.21"
+compose-bom = "2024.10.01"
 compose-compiler = "1.5.14"
+core-ktx = "1.15.0"
+activity-compose = "1.9.3"
+lifecycle = "2.8.6"
+navigation = "2.8.4"
 hilt = "2.51"
 room = "2.6.1"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
-maps-compose = "6.0.0"
+maps-compose = "6.2.1"
+play-services-maps = "19.0.0"
+play-services-location = "21.3.0"
 coil = "2.6.0"
 socket-io = "2.1.0"
-firebase = "33.5.1"
+firebase-bom = "33.5.1"
+datastore = "1.1.1"
+security-crypto = "1.1.0-alpha06"
+google-services = "4.4.2"
+junit = "4.13.2"
+junit-ext = "1.2.1"
+espresso = "3.6.1"
 
 [libraries]
-# Hilt
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
+
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+androidx-ui = { module = "androidx.compose.ui:ui" }
+androidx-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+androidx-material3 = { module = "androidx.compose.material3:material3" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
-androidx-hilt-navigation-compose = "androidx.hilt:hilt-navigation-compose:1.2.0"
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version = "1.2.0" }
 
-# Room
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
-# Retrofit
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
-
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
 
-# Google Maps
-google-maps = "com.google.android.gms:play-services-maps:19.0.0"
+google-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "play-services-maps" }
+google-location = { module = "com.google.android.gms:play-services-location", version.ref = "play-services-location" }
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
 
-# Socket.IO
 socket-io-client = { module = "io.socket:socket.io-client", version.ref = "socket-io" }
-
-# Coil
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
-# Firebase
-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging-ktx" }
 
-# Navigation
-androidx-navigation-compose = "androidx.navigation:navigation-compose:2.8.0"
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "security-crypto" }
 
-# Autres
-kotlinx-coroutines-android = "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
-androidx-lifecycle-viewmodel-compose = "androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6"
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version = "1.8.1" }
+
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-junit = { module = "androidx.test.ext:junit", version.ref = "junit-ext" }
+androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
+dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }

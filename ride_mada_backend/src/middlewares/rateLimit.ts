@@ -18,8 +18,19 @@ export const apiLimiter = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-// Rate limit plus strict pour login / register
-export const authLimiter = new RateLimiterMemory({
+const authLimiter = new RateLimiterMemory({
   points: 5,
-  duration: 60 * 15, // 5 tentatives toutes les 15 minutes
+  duration: 60 * 15,
 });
+
+export const authRateLimit = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await authLimiter.consume(req.ip ?? 'unknown');
+    next();
+  } catch {
+    res.status(429).json({
+      success: false,
+      message: 'Trop de tentatives. Réessayez dans 15 minutes.',
+    });
+  }
+};

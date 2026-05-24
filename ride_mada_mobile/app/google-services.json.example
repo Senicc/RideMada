@@ -1,0 +1,20 @@
+{
+  "_comment": "Copiez ce fichier vers google-services.json après création du projet Firebase Console",
+  "project_info": {
+    "project_number": "VOTRE_PROJECT_NUMBER",
+    "project_id": "votre-projet-firebase",
+    "storage_bucket": "votre-projet-firebase.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:XXX:android:XXX",
+        "android_client_info": {
+          "package_name": "com.ridemada"
+        }
+      },
+      "api_key": [{ "current_key": "VOTRE_CLE_FIREBASE" }]
+    }
+  ],
+  "configuration_version": "1"
+}

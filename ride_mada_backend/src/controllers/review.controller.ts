@@ -1,7 +1,8 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import type { AuthRequest } from '../types/authRequest';
 import prisma from '../config/db';
 
-export const createReview = async (req: Request, res: Response) => {
+export const createReview = async (req: AuthRequest, res: Response) => {
   const reviewerId = req.user?.id;
   if (!reviewerId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });
@@ -22,7 +23,7 @@ export const createReview = async (req: Request, res: Response) => {
   res.status(201).json({ success: true, review });
 };
 
-export const getUserReviews = async (req: Request, res: Response) => {
+export const getUserReviews = async (req: AuthRequest, res: Response) => {
   const reviewedId = typeof req.params.userId === 'string' ? req.params.userId : req.params.userId?.[0];
   if (!reviewedId) {
     return res.status(400).json({ success: false, message: 'userId requis' });

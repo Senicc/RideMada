@@ -8,23 +8,26 @@ export declare class MapService {
     static searchRidesByLocation(lat: number, lng: number, filters: any): Promise<({
         driver: {
             user: {
+                id: string;
+                role: import("@prisma/client").$Enums.Role;
                 phone: string;
                 name: string;
                 password: string;
                 email: string | null;
-                role: import(".prisma/client").$Enums.Role;
-                id: string;
                 photo: string | null;
                 isVerified: boolean;
                 fcmToken: string | null;
                 rating: number;
+                otpCode: string | null;
+                otpExpires: Date | null;
+                isBlocked: boolean;
                 createdAt: Date;
                 updatedAt: Date;
             };
         } & {
             id: string;
             rating: number;
-            status: import(".prisma/client").$Enums.DriverStatus;
+            status: import("@prisma/client").$Enums.DriverStatus;
             userId: string;
             documents: import("@prisma/client/runtime/library").JsonValue;
             currentLat: number | null;
@@ -34,7 +37,7 @@ export declare class MapService {
         vehicle: {
             id: string;
             seats: number;
-            type: import(".prisma/client").$Enums.VehicleType;
+            type: import("@prisma/client").$Enums.VehicleType;
             brand: string;
             model: string;
             color: string;
@@ -49,7 +52,7 @@ export declare class MapService {
         departureLng: number;
         arrivalLat: number;
         arrivalLng: number;
-        status: import(".prisma/client").$Enums.RideStatus;
+        status: import("@prisma/client").$Enums.RideStatus;
         driverId: string;
         departureAddress: string;
         arrivalAddress: string;

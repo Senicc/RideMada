@@ -1,4 +1,5 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import type { AuthRequest } from '../types/authRequest';
 import prisma from '../config/db';
 
 async function getDriverIdForUser(userId: string) {
@@ -6,7 +7,7 @@ async function getDriverIdForUser(userId: string) {
   return driver?.id ?? null;
 }
 
-export const addVehicle = async (req: Request, res: Response) => {
+export const addVehicle = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });
@@ -34,7 +35,7 @@ export const addVehicle = async (req: Request, res: Response) => {
   res.status(201).json({ success: true, vehicle });
 };
 
-export const getMyVehicles = async (req: Request, res: Response) => {
+export const getMyVehicles = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });
@@ -51,7 +52,7 @@ export const getMyVehicles = async (req: Request, res: Response) => {
   res.json({ success: true, vehicles });
 };
 
-export const updateVehicle = async (req: Request, res: Response) => {
+export const updateVehicle = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });
@@ -89,7 +90,7 @@ export const updateVehicle = async (req: Request, res: Response) => {
   res.json({ success: true, vehicle });
 };
 
-export const deleteVehicle = async (req: Request, res: Response) => {
+export const deleteVehicle = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });

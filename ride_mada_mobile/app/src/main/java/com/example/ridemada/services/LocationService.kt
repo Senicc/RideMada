@@ -49,8 +49,4 @@ class LocationService @Inject constructor(
         }
     }
 
-    @SuppressLint("MissingPermission")
-    suspend fun getCurrentLocation(): Location? {
-        return fusedLocationClient.lastLocation.result
-    }
 }

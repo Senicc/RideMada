@@ -1,7 +1,8 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import type { AuthRequest } from '../types/authRequest';
 import prisma from '../config/db';
 
-export const getChatHistory = async (req: Request, res: Response) => {
+export const getChatHistory = async (req: AuthRequest, res: Response) => {
   const currentUserId = req.user?.id;
   if (!currentUserId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });
@@ -26,7 +27,7 @@ export const getChatHistory = async (req: Request, res: Response) => {
   res.json({ success: true, messages });
 };
 
-export const sendMessage = async (req: Request, res: Response) => {
+export const sendMessage = async (req: AuthRequest, res: Response) => {
   const senderId = req.user?.id;
   if (!senderId) {
     return res.status(401).json({ success: false, message: 'Non authentifié' });

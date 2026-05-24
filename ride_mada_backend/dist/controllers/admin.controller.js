@@ -43,8 +43,16 @@ const getStatistics = async (req, res) => {
 };
 exports.getStatistics = getStatistics;
 const blockUser = async (req, res) => {
-    // Implémenter logique de blocage
-    res.json({ success: true, message: "Utilisateur bloqué" });
+    const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0];
+    if (!id) {
+        return res.status(400).json({ success: false, message: 'Identifiant utilisateur manquant' });
+    }
+    const user = await db_1.default.user.update({
+        where: { id },
+        data: { isBlocked: true },
+        select: { id: true, name: true, phone: true, isBlocked: true },
+    });
+    res.json({ success: true, message: 'Utilisateur bloqué', user });
 };
 exports.blockUser = blockUser;
 //# sourceMappingURL=admin.controller.js.map

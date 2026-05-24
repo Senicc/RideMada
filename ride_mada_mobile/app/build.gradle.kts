@@ -2,8 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.kapt)      // Pour Hilt + Room
-    alias(libs.plugins.dagger.hilt)      // Hilt
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.dagger.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -19,6 +20,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+
+        buildConfigField("String", "API_BASE_URL", "\"http://192.168.137.1:5000/api/\"")
+        buildConfigField("String", "SOCKET_URL", "\"http://192.168.137.1:5000\"")
     }
 
     buildTypes {
@@ -26,8 +30,10 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
+            buildConfigField("String", "API_BASE_URL", "\"https://api.ridemada.com/api/\"")
+            buildConfigField("String", "SOCKET_URL", "\"https://api.ridemada.com\"")
         }
     }
 
@@ -42,65 +48,58 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
     }
 }
 
 dependencies {
-
-    // === Compose ===
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
 
-    // === Hilt ===
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // === Lifecycle & ViewModel ===
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // === Coroutines ===
     implementation(libs.kotlinx.coroutines.android)
 
-    // === Retrofit + OkHttp ===
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
 
-    // === Room Database ===
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
 
-    // === Google Maps ===
     implementation(libs.google.maps)
+    implementation(libs.google.location)
     implementation(libs.maps.compose)
 
-    // === Socket.IO ===
     implementation(libs.socket.io.client)
-
-    // === Coil (Images) ===
     implementation(libs.coil.compose)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.security.crypto)
 
-    // === Firebase Cloud Messaging ===
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 
-    // === Core ===
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

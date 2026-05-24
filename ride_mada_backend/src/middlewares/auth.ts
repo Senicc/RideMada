@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import type { AuthRequest } from '../types/authRequest';
 
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -19,8 +20,8 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
   }
 
   try {
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded as Express.Request['user'];
+    const decoded = jwt.verify(token, secret) as { id: string; role?: string };
+    req.user = decoded;
     next();
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {

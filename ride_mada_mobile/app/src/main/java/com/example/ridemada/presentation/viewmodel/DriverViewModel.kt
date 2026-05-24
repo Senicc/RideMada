@@ -2,7 +2,8 @@ package com.ridemada.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ridemada.domain.usecase.BecomeDriverUseCase
+import com.ridemada.data.remote.RideMadaApi
+import com.ridemada.data.remote.dto.BecomeDriverRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,28 +12,39 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DriverViewModel @Inject constructor(
-    private val becomeDriverUseCase: BecomeDriverUseCase
+    private val api: RideMadaApi,
 ) : ViewModel() {
 
-    private val _driverState = MutableStateFlow<DriverState>(DriverState.Idle)
-    val driverState = _driverState.asStateFlow()
+    private val _state = MutableStateFlow<String?>(null)
+    val state = _state.asStateFlow()
+
+    fun clearState() {
+        _state.value = null
+    }
 
     fun becomeDriver(brand: String, model: String, plate: String, seats: Int) {
         viewModelScope.launch {
-            _driverState.value = DriverState.Loading
-            try {
-                val result = becomeDriverUseCase(brand, model, plate, seats)
-                _driverState.value = DriverState.Success(result)
-            } catch (e: Exception) {
-                _driverState.value = DriverState.Error(e.message ?: "Erreur inconnue")
+            runCatching {
+                api.becomeDriver(
+                    BecomeDriverRequest(
+                        documents = mapOf("plate" to plate),
+                        brand = brand,
+                        model = model,
+                        color = "Standard",
+                        plate = plate,
+                        seats = seats,
+                        type = "SEDAN",
+                    ),
+                )
+            }.onSuccess { response ->
+                _state.value = if (response.isSuccessful) {
+                    "Demande envoyée — validation en cours"
+                } else {
+                    response.message()
+                }
+            }.onFailure {
+                _state.value = it.message
             }
         }
     }
-}
-
-sealed class DriverState {
-    data object Idle : DriverState()
-    data object Loading : DriverState()
-    data class Success(val message: String) : DriverState()
-    data class Error(val message: String) : DriverState()
 }
