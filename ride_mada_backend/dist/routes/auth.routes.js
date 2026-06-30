@@ -36,8 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const authController = __importStar(require("../controllers/auth.controller"));
+const bootstrapController = __importStar(require("../controllers/bootstrap.controller"));
 const validation_1 = require("../middlewares/validation");
+const rateLimit_1 = require("../middlewares/rateLimit");
 const router = (0, express_1.Router)();
+router.post('/bootstrap-admin', bootstrapController.bootstrapAdmin);
+router.use(rateLimit_1.authRateLimit);
 router.post('/register', [
     (0, express_validator_1.body)('phone').isMobilePhone('any').withMessage('Numéro de téléphone invalide'),
     (0, express_validator_1.body)('name').notEmpty().trim(),
@@ -47,8 +51,13 @@ router.post('/login', [
     (0, express_validator_1.body)('phone').notEmpty(),
     (0, express_validator_1.body)('password').notEmpty(),
 ], validation_1.validate, authController.login);
-router.post('/refresh', authController.refreshToken);
-router.post('/verify-otp', authController.verifyOTP);
+router.post('/refresh', [
+    (0, express_validator_1.body)('refreshToken').notEmpty(),
+], validation_1.validate, authController.refreshToken);
+router.post('/verify-otp', [
+    (0, express_validator_1.body)('phone').notEmpty(),
+    (0, express_validator_1.body)('otp').notEmpty(),
+], validation_1.validate, authController.verifyOTP);
 router.post('/forgot-password', [
     (0, express_validator_1.body)('phone').notEmpty(),
 ], validation_1.validate, authController.forgotPassword);

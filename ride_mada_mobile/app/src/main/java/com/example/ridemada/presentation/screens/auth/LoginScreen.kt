@@ -3,7 +3,6 @@ package com.ridemada.presentation.screens.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
@@ -12,8 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,11 +24,13 @@ import com.ridemada.presentation.navigation.RoleNavigation
 import com.ridemada.presentation.navigation.Screen
 import com.ridemada.presentation.viewmodel.AuthState
 import com.ridemada.presentation.viewmodel.AuthViewModel
+import com.ridemada.presentation.viewmodel.MainViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavHostController,
     viewModel: AuthViewModel = hiltViewModel(),
+    mainViewModel: MainViewModel = hiltViewModel(),
 ) {
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -41,6 +40,7 @@ fun LoginScreen(
         when (authState) {
             is AuthState.Success -> {
                 val role = viewModel.currentUserRole()
+                mainViewModel.refreshRole()
                 viewModel.resetState()
                 navController.navigate(RoleNavigation.homeForRole(role)) {
                     popUpTo(Screen.Login.route) { inclusive = true }
@@ -64,94 +64,84 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.Start,
         ) {
             Spacer(modifier = Modifier.height(100.dp))
             
             Text(
                 text = "RideMada",
-                fontSize = 40.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Connectez-vous à votre compte",
+                text = "Entrez votre numéro pour continuer",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    RideMadaTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = "Numéro de téléphone",
-                        icon = Icons.Default.Phone,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    RideMadaTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = "Mot de passe",
-                        icon = Icons.Default.Lock,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                    )
-                    
-                    if (authState is AuthState.Error) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = (authState as AuthState.Error).message,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Mot de passe oublié ?",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .clickable { navController.navigate(Screen.ForgotPassword.route) }
-                            .padding(4.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    RideMadaButton(
-                        text = "Se connecter",
-                        onClick = { viewModel.login(phone.trim(), password) },
-                        isLoading = authState is AuthState.Loading,
-                        enabled = phone.isNotBlank() && password.length >= 6
-                    )
-                }
+            RideMadaTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = "Numéro de téléphone",
+                icon = Icons.Default.Phone,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            RideMadaTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = "Mot de passe",
+                icon = Icons.Default.Lock,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+            
+            if (authState is AuthState.Error) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = (authState as AuthState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Mot de passe oublié ?",
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clickable { navController.navigate(Screen.ForgotPassword.route) }
+                    .padding(vertical = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+            
+            RideMadaButton(
+                text = "Continuer",
+                onClick = { viewModel.login(phone.trim(), password) },
+                isLoading = authState is AuthState.Loading,
+                enabled = phone.isNotBlank() && password.length >= 6
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Nouveau sur RideMada ? ",
+                    text = "Nouveau ici ? ",
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "Créer un compte",
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clickable { navController.navigate(Screen.Register.route) }

@@ -35,13 +35,14 @@ function formatUser(user) {
 }
 const register = async (req, res) => {
     try {
-        const { phone, name, password, email, role = 'PASSENGER' } = req.body;
+        const { phone, name, password, email } = req.body;
         const existingUser = await db_1.default.user.findUnique({ where: { phone } });
         if (existingUser) {
             return res.status(409).json({ success: false, message: 'Ce numéro est déjà utilisé' });
         }
         const hashedPassword = await bcrypt_1.default.hash(password, 10);
         const otp = (0, otp_1.generateOTP)();
+        console.log(`[DEV] Code OTP généré pour ${phone} : ${otp}`);
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
         const user = await db_1.default.user.create({
             data: {
@@ -49,7 +50,7 @@ const register = async (req, res) => {
                 name,
                 email: email || null,
                 password: hashedPassword,
-                role,
+                role: 'PASSENGER',
                 otpCode: otp,
                 otpExpires,
             },
@@ -64,7 +65,9 @@ const register = async (req, res) => {
         });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Erreur serveur';
+        console.error('[REGISTER ERROR]', error);
+        // Gestion propre des erreurs sans exposer Prisma
+        const message = error.code === 'P2002' ? 'Ce numéro est déjà utilisé' : 'Erreur lors de l\'inscription';
         res.status(500).json({ success: false, message });
     }
 };
@@ -78,6 +81,9 @@ const login = async (req, res) => {
         });
         if (!user?.password || !(await bcrypt_1.default.compare(password, user.password))) {
             return res.status(401).json({ success: false, message: 'Numéro ou mot de passe incorrect' });
+        }
+        if (user.isBlocked) {
+            return res.status(403).json({ success: false, message: 'Compte suspendu. Contactez le support.' });
         }
         if (!user.isVerified) {
             return res.status(403).json({
@@ -97,8 +103,8 @@ const login = async (req, res) => {
         });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Erreur serveur';
-        res.status(500).json({ success: false, message });
+        console.error('[LOGIN ERROR]', error);
+        res.status(500).json({ success: false, message: 'Erreur lors de la connexion' });
     }
 };
 exports.login = login;
@@ -117,13 +123,17 @@ const refreshToken = async (req, res) => {
         if (!user) {
             return res.status(401).json({ success: false, message: 'Utilisateur introuvable' });
         }
+        if (user.isBlocked) {
+            return res.status(403).json({ success: false, message: 'Compte suspendu' });
+        }
         res.json({
             success: true,
             accessToken: signAccessToken(user),
             refreshToken: signRefreshToken(user.id),
         });
     }
-    catch {
+    catch (error) {
+        console.error('[REFRESH TOKEN ERROR]', error);
         res.status(401).json({ success: false, message: 'Refresh token invalide ou expiré' });
     }
 };
@@ -135,7 +145,7 @@ const verifyOTP = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
         }
-        if (user.otpCode !== otp ||
+        if (!(0, otp_1.verifyOtpCode)(user.otpCode, otp) ||
             !user.otpExpires ||
             user.otpExpires < new Date()) {
             return res.status(400).json({ success: false, message: 'Code OTP invalide ou expiré' });
@@ -155,8 +165,8 @@ const verifyOTP = async (req, res) => {
         });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Erreur serveur';
-        res.status(500).json({ success: false, message });
+        console.error('[VERIFY OTP ERROR]', error);
+        res.status(500).json({ success: false, message: 'Erreur lors de la vérification' });
     }
 };
 exports.verifyOTP = verifyOTP;
@@ -187,8 +197,8 @@ const forgotPassword = async (req, res) => {
         });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Erreur serveur';
-        res.status(500).json({ success: false, message });
+        console.error('[FORGOT PASSWORD ERROR]', error);
+        res.status(500).json({ success: false, message: 'Erreur lors de l\'envoi du code' });
     }
 };
 exports.forgotPassword = forgotPassword;
@@ -197,7 +207,7 @@ const resetPassword = async (req, res) => {
         const { phone, otp, newPassword } = req.body;
         const user = await db_1.default.user.findUnique({ where: { phone } });
         if (!user ||
-            user.otpCode !== otp ||
+            !(0, otp_1.verifyOtpCode)(user.otpCode, otp) ||
             !user.otpExpires ||
             user.otpExpires < new Date()) {
             return res.status(400).json({ success: false, message: 'Code invalide ou expiré' });
@@ -215,8 +225,8 @@ const resetPassword = async (req, res) => {
         res.json({ success: true, message: 'Mot de passe mis à jour' });
     }
     catch (error) {
-        const message = error instanceof Error ? error.message : 'Erreur serveur';
-        res.status(500).json({ success: false, message });
+        console.error('[RESET PASSWORD ERROR]', error);
+        res.status(500).json({ success: false, message: 'Erreur lors de la réinitialisation du mot de passe' });
     }
 };
 exports.resetPassword = resetPassword;

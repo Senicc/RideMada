@@ -36,9 +36,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const paymentController = __importStar(require("../controllers/payment.controller"));
 const auth_1 = require("../middlewares/auth");
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
 const router = (0, express_1.Router)();
-router.post('/initiate', auth_1.authenticateJWT, paymentController.initiatePayment);
-router.post('/confirm-cash', auth_1.authenticateJWT, paymentController.confirmCashPayment);
-router.get('/history', auth_1.authenticateJWT, paymentController.getPaymentHistory);
+router.use(auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser);
+router.post('/initiate', paymentController.initiatePayment);
+router.post('/confirm-cash', paymentController.confirmCashPayment);
+router.get('/history', paymentController.getPaymentHistory);
 exports.default = router;
 //# sourceMappingURL=payment.routes.js.map

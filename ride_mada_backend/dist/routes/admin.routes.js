@@ -41,7 +41,14 @@ const router = (0, express_1.Router)();
 router.get('/users', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getAllUsers);
 router.get('/drivers/pending', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getPendingDrivers);
 router.put('/drivers/:id/approve', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.approveDriver);
+router.put('/drivers/:id/reject', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.rejectDriver);
+router.get('/payments', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getPayments);
+router.get('/logs', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getAdminLogs);
 router.get('/statistics', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getStatistics);
+router.get('/rides/active', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getActiveRides);
+router.get('/reports', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.getReports);
+router.put('/reports/:id/resolve', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.resolveReport);
 router.post('/block-user/:id', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.blockUser);
+router.post('/unblock-user/:id', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('ADMIN'), adminController.unblockUser);
 exports.default = router;
 //# sourceMappingURL=admin.routes.js.map

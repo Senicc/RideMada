@@ -5,67 +5,82 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val RideMadaDarkScheme = darkColorScheme(
-    primary            = BrandPrimary,
-    onPrimary          = Color(0xFF001F29),
-    primaryContainer   = CyanDark,
-    onPrimaryContainer = CyanLight,
+// ── Light Theme — Sky Blue ─────────────────────────────────────────────────
+private val RideMadaLightScheme = lightColorScheme(
+    primary            = SkyBlue500,
+    onPrimary          = White,
+    primaryContainer   = SkyBlue100,
+    onPrimaryContainer = SkyBlue700,
 
-    secondary            = DriverGreen,
-    onSecondary          = Color(0xFF00201A),
-    secondaryContainer   = DriverGreenDark,
-    onSecondaryContainer = DriverGreenLight,
+    secondary            = SkyBlue400,
+    onSecondary          = White,
+    secondaryContainer   = SkyBlue50,
+    onSecondaryContainer = SkyBlue700,
 
-    tertiary            = AdminGold,
-    onTertiary          = Color(0xFF2A1800),
-    tertiaryContainer   = AdminGoldDark,
-    onTertiaryContainer = AdminGoldLight,
+    tertiary            = GreenAccent,
+    onTertiary          = White,
+    tertiaryContainer   = GreenAccent.copy(alpha = 0.12f),
+    onTertiaryContainer = GreenAccent,
 
-    background        = DarkBackground,
-    onBackground      = TextPrimary,
+    background        = SlateWhite,
+    onBackground      = CoolGrey900,
 
-    surface           = DarkSurface,
-    onSurface         = TextPrimary,
-    surfaceVariant    = DarkSurface2,
-    onSurfaceVariant  = TextSecondary,
+    surface           = White,
+    onSurface         = CoolGrey900,
+    surfaceVariant    = CoolGrey100,
+    onSurfaceVariant  = CoolGrey700,
 
-    outline           = Divider,
-    outlineVariant    = DarkSurfaceVar,
+    outline           = CoolGrey200,
+    outlineVariant    = CoolGrey100,
 
-    error             = StatusError,
+    error             = ErrorRed,
     onError           = White,
-    errorContainer    = Color(0xFF5C0000),
-    onErrorContainer  = Color(0xFFFFB3B3),
+    errorContainer    = ErrorRed.copy(alpha = 0.12f),
+    onErrorContainer  = ErrorRed,
 
-    inverseSurface    = MapSheetSurface,
-    inverseOnSurface  = Color(0xFF1A1A1A),
-    inversePrimary    = CyanDark,
-
-    scrim             = Overlay,
+    scrim             = OverlayDark,
+    inverseSurface    = CoolGrey900,
+    inverseOnSurface  = SlateWhite,
+    inversePrimary    = SkyBlue200,
 )
 
-private val RideMadaLightScheme = lightColorScheme(
-    primary            = Color(0xFF000000),
-    onPrimary          = White,
-    primaryContainer   = Color(0xFFE8E8E8),
-    onPrimaryContainer = Color(0xFF1A1A1A),
+// ── Dark Theme — Deep Ocean Blue ──────────────────────────────────────────
+private val RideMadaDarkScheme = darkColorScheme(
+    primary            = SkyBlue400,
+    onPrimary          = CoolGrey900,
+    primaryContainer   = SkyBlue700,
+    onPrimaryContainer = SkyBlue100,
 
-    secondary            = BrandAccent,
-    onSecondary          = White,
-    secondaryContainer   = Color(0xFFE8F8EF),
-    onSecondaryContainer = Color(0xFF004D2A),
+    secondary            = SkyBlue200,
+    onSecondary          = CoolGrey900,
+    secondaryContainer   = SkyBlue700.copy(alpha = 0.3f),
+    onSecondaryContainer = SkyBlue200,
 
-    tertiary            = AdminGold,
-    onTertiary          = Color(0xFF2A1800),
+    tertiary            = GreenAccent,
+    onTertiary          = CoolGrey900,
+    tertiaryContainer   = GreenAccent.copy(alpha = 0.2f),
+    onTertiaryContainer = GreenAccent,
 
-    background        = Color(0xFFF7F7F7),
-    onBackground      = Color(0xFF1A1A1A),
-    surface           = White,
-    onSurface         = Color(0xFF1A1A1A),
-    surfaceVariant    = Color(0xFFF0F0F0),
-    onSurfaceVariant  = Color(0xFF6B6B6B),
-    outline           = Color(0xFFE0E0E0),
-    error             = StatusError,
+    background        = CoolGrey900,
+    onBackground      = SlateWhite,
+
+    surface           = Color(0xFF152028),
+    onSurface         = SlateWhite,
+    surfaceVariant    = Color(0xFF1E2F3A),
+    onSurfaceVariant  = CoolGrey200,
+
+    outline           = Color(0xFF2D4555),
+    outlineVariant    = Color(0xFF1E2F3A),
+
+    error             = Color(0xFFF87171),
+    onError           = CoolGrey900,
+    errorContainer    = ErrorRed.copy(alpha = 0.20f),
+    onErrorContainer  = Color(0xFFF87171),
+
+    scrim             = OverlayDark,
+    inverseSurface    = CoolGrey100,
+    inverseOnSurface  = CoolGrey900,
+    inversePrimary    = SkyBlue600,
 )
 
 @Composable
@@ -76,6 +91,7 @@ fun RideMadaTheme(
     MaterialTheme(
         colorScheme = if (darkTheme) RideMadaDarkScheme else RideMadaLightScheme,
         typography  = Typography,
+        shapes      = Shapes,
         content     = content,
     )
 }

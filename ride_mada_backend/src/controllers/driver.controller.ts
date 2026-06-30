@@ -115,7 +115,7 @@ export const getDriverEarnings = async (req: AuthRequest, res: Response) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [completedRides, todayBookings, revenueAgg] = await Promise.all([
+  const [completedRides, todayBookings, revenueBooking, revenueOnDemand, completedOnDemand] = await Promise.all([
     prisma.ride.count({
       where: { driverId: driver.id, status: 'COMPLETED' },
     }),
@@ -133,7 +133,20 @@ export const getDriverEarnings = async (req: AuthRequest, res: Response) => {
       },
       _sum: { amount: true },
     }),
+    prisma.payment.aggregate({
+      where: {
+        status: 'COMPLETED',
+        rideRequest: { driverId: driver.id },
+      },
+      _sum: { amount: true },
+    }),
+    prisma.rideRequest.count({
+      where: { driverId: driver.id, status: 'COMPLETED', updatedAt: { gte: today } },
+    }),
   ]);
+
+  const totalRevenue =
+    Number(revenueBooking._sum.amount ?? 0) + Number(revenueOnDemand._sum.amount ?? 0);
 
   const pendingRides = await prisma.ride.findMany({
     where: { driverId: driver.id, status: 'PENDING', availableSeats: { gt: 0 } },
@@ -148,9 +161,9 @@ export const getDriverEarnings = async (req: AuthRequest, res: Response) => {
   res.json({
     success: true,
     earnings: {
-      totalRevenue: Number(revenueAgg._sum.amount ?? 0),
-      completedRides,
-      todayTrips: todayBookings,
+      totalRevenue,
+      completedRides: completedRides + completedOnDemand,
+      todayTrips: todayBookings + completedOnDemand,
     },
     pendingRides,
   });

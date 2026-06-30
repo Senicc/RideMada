@@ -36,11 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const vehicleController = __importStar(require("../controllers/vehicle.controller"));
 const auth_1 = require("../middlewares/auth");
-const role_1 = require("../middlewares/role");
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
 const router = (0, express_1.Router)();
-router.post('/', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), vehicleController.addVehicle);
-router.get('/my-vehicles', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), vehicleController.getMyVehicles);
-router.put('/:id', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), vehicleController.updateVehicle);
-router.delete('/:id', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), vehicleController.deleteVehicle);
+router.use(auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser);
+router.post('/', vehicleController.addVehicle);
+router.get('/my-vehicles', vehicleController.getMyVehicles);
+router.put('/:id', vehicleController.updateVehicle);
+router.delete('/:id', vehicleController.deleteVehicle);
 exports.default = router;
 //# sourceMappingURL=vehicle.routes.js.map

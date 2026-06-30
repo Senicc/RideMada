@@ -36,10 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const bookingController = __importStar(require("../controllers/booking.controller"));
 const auth_1 = require("../middlewares/auth");
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
 const router = (0, express_1.Router)();
-router.post('/', auth_1.authenticateJWT, bookingController.createBooking);
-router.delete('/:id', auth_1.authenticateJWT, bookingController.cancelBooking);
-router.get('/my-bookings', auth_1.authenticateJWT, bookingController.getMyBookings);
-router.get('/ride/:rideId', auth_1.authenticateJWT, bookingController.getBookingsByRide);
+router.use(auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser);
+router.post('/', bookingController.createBooking);
+router.delete('/:id', bookingController.cancelBooking);
+router.get('/my-bookings', bookingController.getMyBookings);
+router.get('/ride/:rideId', bookingController.getBookingsByRide);
 exports.default = router;
 //# sourceMappingURL=booking.routes.js.map

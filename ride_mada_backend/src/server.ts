@@ -7,7 +7,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import mainRoutes from './routes';
 import { initializeSocket } from './sockets/socket';
+import { setIO } from './sockets/io';
 import { errorHandler, apiLimiter, securityHeaders } from './middlewares';
+import "./config/firebase";
 
 dotenv.config();
 
@@ -38,6 +40,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api', apiLimiter, mainRoutes);
 
+setIO(io);
 initializeSocket(io);
 
 app.get('/health', (_req, res) => {

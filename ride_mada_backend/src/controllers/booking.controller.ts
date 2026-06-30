@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '../types/authRequest';
 import prisma from '../config/db';
+import { NotificationService } from '../services/notification.service';
 
 interface CreateBookingBody {
   rideId: string;
@@ -59,6 +60,12 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     });
     return created;
   });
+
+  const passenger = await prisma.user.findUnique({
+    where: { id: passengerId },
+    select: { name: true },
+  });
+  await NotificationService.notifyNewBooking(rideId, passenger?.name ?? 'Passager', seats);
 
   res.status(201).json({ success: true, booking });
 };

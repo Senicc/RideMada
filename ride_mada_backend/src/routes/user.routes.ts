@@ -21,6 +21,9 @@ router.get('/profile', userController.getProfile);
 router.put('/profile', upload.single('photo'), userController.updateProfile);
 router.get('/history', userController.getActivityHistory);
 router.get('/favorites', userController.getFavorites);
+router.post('/favorites', userController.addFavorite);
+router.delete('/favorites/:id', userController.deleteFavorite);
 router.patch('/fcm-token', userController.updateFcmToken);
+router.put('/change-password', userController.changePassword);
 
 export default router;

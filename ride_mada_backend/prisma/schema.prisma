@@ -20,15 +20,29 @@ enum DriverStatus {
 }
 
 enum VehicleType {
+  MOTORCYCLE
+  TAXI
+  ECONOMY
+  COMFORT
   SEDAN
   SUV
   MINIBUS
-  MOTORCYCLE
+  VAN
+  DELIVERY
 }
 
 enum RideStatus {
   PENDING
   ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RideRequestStatus {
+  REQUESTED
+  ACCEPTED
+  DRIVER_ARRIVING
+  IN_PROGRESS
   COMPLETED
   CANCELLED
 }
@@ -65,9 +79,29 @@ model User {
   sentMessages     Message[] @relation("Sender")
   receivedMessages Message[] @relation("Receiver")
 
-  favorites       Favorite[]
-  reportsMade     Report[]   @relation("ReportsMade")
-  reportsReceived Report[]   @relation("ReportsReceived")
+  favorites     Favorite[]
+  reportsMade   Report[]   @relation("ReportsMade")
+  reportsReceived Report[] @relation("ReportsReceived")
+
+  notifications Notification[]
+  adminLogs     AdminLog[] @relation("AdminLogs")
+  payments      Payment[]
+  rideRequests  RideRequest[]
+  refreshTokens RefreshToken[]
+
+  @@index([role])
+  @@index([isBlocked])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Driver {
@@ -82,8 +116,12 @@ model Driver {
   documents  Json
   rating     Float        @default(5.0)
 
-  vehicles Vehicle[]
-  rides    Ride[]
+  vehicles     Vehicle[]
+  rides        Ride[]
+  rideRequests RideRequest[]
+
+  @@index([status, isApproved])
+  @@index([currentLat, currentLng])
 }
 
 model Vehicle {
@@ -101,6 +139,8 @@ model Vehicle {
   isActive Boolean     @default(true)
 
   rides Ride[]
+
+  @@index([driverId])
 }
 
 model Ride {
@@ -129,6 +169,44 @@ model Ride {
   bookings Booking[]
 
   createdAt DateTime @default(now())
+
+  @@index([status, departureTime])
+  @@index([driverId])
+}
+
+model RideRequest {
+  id String @id @default(uuid())
+
+  passengerId String
+  passenger   User @relation(fields: [passengerId], references: [id])
+
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id])
+
+  pickupLat      Float
+  pickupLng      Float
+  pickupAddress  String
+  dropoffLat     Float
+  dropoffLng     Float
+  dropoffAddress String
+
+  vehicleType    VehicleType
+  estimatedPrice Decimal
+  finalPrice     Decimal?
+
+  status      RideRequestStatus @default(REQUESTED)
+  scheduledAt DateTime?
+  couponCode  String?
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([passengerId])
+  @@index([driverId])
+  @@index([createdAt])
 }
 
 model Booking {
@@ -146,6 +224,9 @@ model Booking {
   createdAt DateTime @default(now())
 
   payments Payment[]
+
+  @@index([passengerId])
+  @@index([rideId, status])
 }
 
 model Message {
@@ -161,6 +242,9 @@ model Message {
 
   sender   User @relation("Sender", fields: [senderId], references: [id])
   receiver User @relation("Receiver", fields: [receiverId], references: [id])
+
+  @@index([senderId, receiverId])
+  @@index([rideId])
 }
 
 model Review {
@@ -177,6 +261,8 @@ model Review {
 
   reviewer User @relation("Reviewer", fields: [reviewerId], references: [id])
   reviewed User @relation("Reviewed", fields: [reviewedId], references: [id])
+
+  @@index([reviewedId])
 }
 
 model Favorite {
@@ -185,10 +271,17 @@ model Favorite {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  type     String // DRIVER or DESTINATION
-  targetId String
+  type     String // HOME, WORK, DRIVER, DESTINATION
+  targetId String?
+  label    String?
+  address  String?
+  lat      Float?
+  lng      Float?
 
   createdAt DateTime @default(now())
+
+  @@unique([userId, type, targetId])
+  @@index([userId])
 }
 
 model Report {
@@ -204,19 +297,72 @@ model Report {
   status String @default("PENDING")
 
   createdAt DateTime @default(now())
+
+  @@index([status])
 }
 
 model Payment {
   id String @id @default(uuid())
 
-  bookingId String
-  booking   Booking @relation(fields: [bookingId], references: [id])
-  userId    String
+  bookingId     String?
+  booking       Booking?     @relation(fields: [bookingId], references: [id])
+  rideRequestId String?
+  rideRequest   RideRequest? @relation(fields: [rideRequestId], references: [id])
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
 
   amount        Decimal
-  method        String // CASH, MVOLA, ORANGE, AIRTEL
+  method        String // CASH, MVOLA, ORANGE, AIRTEL, CARD
   status        String
   transactionId String?
 
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  type      String // INFO, PROMO, RIDE_UPDATE
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}
+
+model Coupon {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  discount   Decimal
+  type       String // PERCENTAGE or FIXED
+  validUntil DateTime
+  isActive   Boolean  @default(true)
+  usageLimit Int      @default(1)
+  timesUsed  Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model AdminLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  admin     User     @relation("AdminLogs", fields: [adminId], references: [id])
+  action    String
+  targetId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
 }

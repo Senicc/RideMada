@@ -2,8 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.initiateMobileMoneyPayment = exports.sendOTPSMS = void 0;
 const sendOTPSMS = async (phone, otp) => {
-    // En production : Intégration MVola, Orange Money SMS, ou API comme AfricasTalking / BulkSMS
-    console.log(`[SMS] OTP envoyé au ${phone} → Code: ${otp}`);
+    if (process.env.NODE_ENV === 'production') {
+        // Intégrer MVola / Orange / AfricasTalking ici
+        return { success: true, message: `OTP envoyé à ${phone}` };
+    }
+    console.log(`[DEV SMS] OTP pour ${phone}`);
     // Exemple simulation
     return {
         success: true,

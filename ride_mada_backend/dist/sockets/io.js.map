@@ -1,0 +1,1 @@
+{"version":3,"file":"io.js","sourceRoot":"","sources":["../../src/sockets/io.ts"],"names":[],"mappings":";;;AAEA,IAAI,UAAU,GAAkB,IAAI,CAAC;AAE9B,MAAM,KAAK,GAAG,CAAC,MAAc,EAAE,EAAE;IACtC,UAAU,GAAG,MAAM,CAAC;AACtB,CAAC,CAAC;AAFW,QAAA,KAAK,SAEhB;AAEK,MAAM,KAAK,GAAG,GAAkB,EAAE,CAAC,UAAU,CAAC;AAAxC,QAAA,KAAK,SAAmC"}

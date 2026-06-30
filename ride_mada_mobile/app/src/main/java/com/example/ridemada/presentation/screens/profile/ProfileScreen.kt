@@ -87,30 +87,45 @@ fun ProfileScreen(
             ProfileMenuItem(
                 icon = Icons.Default.Person,
                 title = "Informations personnelles",
-                onClick = { /* TODO */ }
+                onClick = { navController.navigate(Screen.EditProfile.route) },
             )
             ProfileMenuItem(
                 icon = Icons.Default.Security,
                 title = "Sécurité & Mot de passe",
-                onClick = { /* TODO */ }
+                onClick = { navController.navigate(Screen.ChangePassword.route) },
             )
             ProfileMenuItem(
                 icon = Icons.Default.Payment,
-                title = "Moyens de paiement",
-                onClick = { navController.navigate(Screen.Bookings.route) },
+                title = "Portefeuille & paiements",
+                onClick = { navController.navigate(Screen.Wallet.route) },
             )
         }
 
         ProfileSection(title = "RideMada") {
             ProfileMenuItem(
+                icon = Icons.Default.Favorite,
+                title = "Adresses favorites",
+                onClick = { navController.navigate(Screen.Favorites.route) },
+            )
+            ProfileMenuItem(
+                icon = Icons.Default.Settings,
+                title = "Paramètres",
+                onClick = { navController.navigate(Screen.Settings.route) },
+            )
+            ProfileMenuItem(
+                icon = Icons.Default.Report,
+                title = "Signaler un problème",
+                onClick = { navController.navigate(Screen.Report.route) },
+            )
+            ProfileMenuItem(
                 icon = Icons.Default.Help,
                 title = "Aide et assistance",
-                onClick = { /* TODO */ }
+                onClick = { navController.navigate(Screen.Help.route) },
             )
             ProfileMenuItem(
                 icon = Icons.Default.Info,
                 title = "À propos",
-                onClick = { /* TODO */ }
+                onClick = { navController.navigate(Screen.Help.route) },
             )
         }
 

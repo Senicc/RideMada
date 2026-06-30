@@ -28,7 +28,7 @@ class MainViewModel @Inject constructor(
     fun syncFcmToken() {
         viewModelScope.launch {
             if (!authRepository.isLoggedIn()) return@launch
-            _userRole.value = authRepository.getCurrentUser()?.role
+            refreshRole()
             FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val token = task.result ?: return@addOnCompleteListener
@@ -37,6 +37,12 @@ class MainViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun refreshRole() {
+        viewModelScope.launch {
+            _userRole.value = authRepository.getCurrentUser()?.role
         }
     }
 }

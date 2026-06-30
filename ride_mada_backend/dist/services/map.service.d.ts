@@ -27,23 +27,23 @@ export declare class MapService {
         } & {
             id: string;
             rating: number;
-            status: import("@prisma/client").$Enums.DriverStatus;
             userId: string;
-            documents: import("@prisma/client/runtime/library").JsonValue;
+            status: import("@prisma/client").$Enums.DriverStatus;
             currentLat: number | null;
             currentLng: number | null;
             isApproved: boolean;
+            documents: import("@prisma/client/runtime/library").JsonValue;
         };
         vehicle: {
             id: string;
-            seats: number;
             type: import("@prisma/client").$Enums.VehicleType;
+            seats: number;
             brand: string;
             model: string;
             color: string;
             plate: string;
-            isActive: boolean;
             driverId: string;
+            isActive: boolean;
         };
     } & {
         id: string;
@@ -54,12 +54,12 @@ export declare class MapService {
         arrivalLng: number;
         status: import("@prisma/client").$Enums.RideStatus;
         driverId: string;
+        vehicleId: string;
         departureAddress: string;
         arrivalAddress: string;
         departureTime: Date;
         price: import("@prisma/client/runtime/library").Decimal;
         availableSeats: number;
-        vehicleId: string;
     })[]>;
 }
 export default MapService;

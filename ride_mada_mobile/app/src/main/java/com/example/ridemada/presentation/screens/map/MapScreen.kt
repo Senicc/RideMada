@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +56,10 @@ fun MapScreen(
     val isSearching by viewModel.isSearchingDriver.collectAsState()
     val error by viewModel.error.collectAsState()
 
+    val pickup by viewModel.pickup.collectAsState()
+    val dropoff by viewModel.dropoff.collectAsState()
+    val route by viewModel.route.collectAsState()
+
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -98,6 +103,12 @@ fun MapScreen(
     }
 
     var destination by remember { mutableStateOf("") }
+    val suggestions by viewModel.suggestions.collectAsState()
+    val isSearchingSuggestions by viewModel.isSearchingSuggestions.collectAsState()
+
+    LaunchedEffect(destination) {
+        viewModel.searchSuggestions(destination)
+    }
     val bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = bottomSheetState)
 
@@ -105,8 +116,8 @@ fun MapScreen(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 280.dp,
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        sheetContainerColor = MaterialTheme.colorScheme.inverseSurface,
-        sheetContentColor = MaterialTheme.colorScheme.inverseOnSurface,
+        sheetContainerColor = MaterialTheme.colorScheme.surface,
+        sheetContentColor = MaterialTheme.colorScheme.onSurface,
         sheetContent = {
             Column(
                 modifier = Modifier
@@ -128,15 +139,72 @@ fun MapScreen(
                     text = "Commander une course",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 RideMadaTextField(
-                    value = destination,
-                    onValueChange = { destination = it },
+                    value = pickup?.description ?: "",
+                    onValueChange = { }, // Don't let user edit directly; they use map or "Ma position" button
+                    label = "Départ",
+                    icon = Icons.Default.LocationOn,
+                    trailingIcon = {
+                        IconButton(onClick = { viewModel.setPickupFromUserLocation() }) {
+                            Icon(Icons.Default.MyLocation, contentDescription = "Ma position")
+                        }
+                    },
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                RideMadaTextField(
+                    value = dropoff?.description ?: destination,
+                    onValueChange = {
+                        destination = it
+                    },
                     label = "Où allez-vous ?",
                     icon = Icons.Default.Search,
                 )
+                if (suggestions.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    ) {
+                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            suggestions.take(5).forEach { suggestion ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            destination = suggestion.description
+                                            viewModel.selectSuggestion(suggestion)
+                                            viewModel.clearSuggestions()
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Default.Place,
+                                        contentDescription = null,
+                                        tint = BrandAccent,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        suggestion.description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (isSearchingSuggestions && destination.length >= 2) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                    )
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -190,14 +258,18 @@ fun MapScreen(
                         if (fareEstimate == null) {
                             viewModel.estimateFare(destination)
                         } else {
-                            viewModel.searchDriver {
+                            viewModel.requestRide { request ->
                                 navController.navigate(
-                                    Screen.TripTracking.createRoute(destination, fareEstimate!!.price),
+                                    Screen.TripTracking.createRoute(
+                                        request.id,
+                                        request.dropoffAddress,
+                                        request.estimatedPrice.toInt(),
+                                    ),
                                 )
                             }
                         }
                     },
-                    enabled = destination.isNotBlank() && !isLoading && !isSearching,
+                    enabled = (pickup != null || destination.isNotBlank()) && (dropoff != null || destination.isNotBlank()) && !isLoading && !isSearching,
                     isLoading = isLoading || isSearching,
                 )
                 Spacer(modifier = Modifier.height(80.dp))
@@ -216,12 +288,57 @@ fun MapScreen(
                     myLocationButtonEnabled = false,
                     compassEnabled = false,
                 ),
+                onMapClick = { latLng ->
+                    viewModel.onMapClick(latLng.latitude, latLng.longitude)
+                },
             ) {
                 nearbyDrivers.forEach { driver ->
                     Marker(
                         state = MarkerState(LatLng(driver.lat, driver.lng)),
                         title = driver.name,
                         icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN),
+                    )
+                }
+
+                // Pickup marker
+                pickup?.let { p ->
+                    if (p.lat != null && p.lng != null) {
+                        Marker(
+                            state = MarkerState(LatLng(p.lat, p.lng)),
+                            title = p.description,
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
+                        )
+                    }
+                }
+
+                // Dropoff marker
+                dropoff?.let { d ->
+                    if (d.lat != null && d.lng != null) {
+                        Marker(
+                            state = MarkerState(LatLng(d.lat, d.lng)),
+                            title = d.description,
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE),
+                        )
+                    }
+                }
+
+                // Route polyline (décodée)
+                val polylineString = route?.polyline
+                val coords = route?.geometry?.coordinates
+                
+                if (!polylineString.isNullOrEmpty()) {
+                    val decodedPoints = decodePolyline(polylineString)
+                    Polyline(
+                        points = decodedPoints,
+                        color = BrandAccent,
+                        width = 8f,
+                    )
+                } else if (coords != null) {
+                    val points = coords.map { LatLng(it[1], it[0]) }
+                    Polyline(
+                        points = points,
+                        color = BrandAccent,
+                        width = 8f,
                     )
                 }
             }
@@ -240,4 +357,35 @@ fun MapScreen(
             }
         }
     }
+}
+
+private fun decodePolyline(encoded: String): List<LatLng> {
+    val poly = ArrayList<LatLng>()
+    var index = 0
+    val len = encoded.length
+    var lat = 0
+    var lng = 0
+    while (index < len) {
+        var b: Int
+        var shift = 0
+        var result = 0
+        do {
+            b = encoded[index++].code - 63
+            result = result or (b and 0x1f shl shift)
+            shift += 5
+        } while (b >= 0x20)
+        val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        lat += dlat
+        shift = 0
+        result = 0
+        do {
+            b = encoded[index++].code - 63
+            result = result or (b and 0x1f shl shift)
+            shift += 5
+        } while (b >= 0x20)
+        val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        lng += dlng
+        poly.add(LatLng(lat.toDouble() / 1E5, lng.toDouble() / 1E5))
+    }
+    return poly
 }

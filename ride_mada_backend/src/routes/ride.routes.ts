@@ -54,8 +54,6 @@ router.get(
 
 router.get(
   '/nearby-drivers',
-  authenticateJWT,
-  ensureActiveUser,
   [
     query('lat').optional().isFloat(),
     query('lng').optional().isFloat(),

@@ -12,9 +12,11 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const routes_1 = __importDefault(require("./routes"));
 const socket_1 = require("./sockets/socket");
+const io_1 = require("./sockets/io");
 const middlewares_1 = require("./middlewares");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+app.set('trust proxy', 1);
 const httpServer = (0, http_1.createServer)(app);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000,*')
     .split(',')
@@ -34,6 +36,7 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 app.use('/api', middlewares_1.apiLimiter, routes_1.default);
+(0, io_1.setIO)(io);
 (0, socket_1.initializeSocket)(io);
 app.get('/health', (_req, res) => {
     res.json({ success: true, service: 'RideMada API', status: 'ok' });

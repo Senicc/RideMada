@@ -36,11 +36,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const driverController = __importStar(require("../controllers/driver.controller"));
 const auth_1 = require("../middlewares/auth");
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
 const role_1 = require("../middlewares/role");
 const router = (0, express_1.Router)();
-router.post('/become-driver', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('PASSENGER'), driverController.becomeDriver);
-router.put('/location', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), driverController.updateDriverLocation);
-router.get('/status', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), driverController.getDriverStatus);
-router.get('/me', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), driverController.getDriverProfile);
+router.post('/become-driver', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, driverController.becomeDriver);
+router.put('/location', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), driverController.updateDriverLocation);
+router.put('/status', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), driverController.updateDriverStatus);
+router.get('/status', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), driverController.getDriverStatus);
+router.get('/earnings', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), driverController.getDriverEarnings);
+router.get('/me', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), driverController.getDriverProfile);
 exports.default = router;
 //# sourceMappingURL=driver.routes.js.map

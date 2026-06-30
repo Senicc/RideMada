@@ -30,6 +30,41 @@ interface RideMadaApi {
     @PUT("users/profile")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<ProfileResponse>
 
+    @GET("users/favorites")
+    suspend fun getFavorites(): Response<FavoritesResponse>
+
+    @POST("users/favorites")
+    suspend fun addFavorite(@Body request: FavoriteRequest): Response<FavoritesResponse>
+
+    @DELETE("users/favorites/{id}")
+    suspend fun deleteFavorite(@Path("id") id: String): Response<FavoritesResponse>
+
+    @GET("maps/geocode")
+    suspend fun geocode(@Query("address") address: String): Response<GeocodeResponse>
+
+    @GET("maps/autocomplete")
+    suspend fun autocomplete(@Query("input") input: String): Response<AutocompleteResponse>
+
+    @GET("maps/reverse")
+    suspend fun reverseGeocode(
+        @Query("lat") lat: Double,
+        @Query("lng") lng: Double,
+    ): Response<ReverseGeocodeResponse>
+
+    @GET("maps/directions")
+    suspend fun getDirections(
+        @Query("originLat") originLat: Double,
+        @Query("originLng") originLng: Double,
+        @Query("destLat") destLat: Double,
+        @Query("destLng") destLng: Double,
+    ): Response<DirectionsResponse>
+
+    @POST("reports")
+    suspend fun createReport(@Body request: ReportRequest): Response<ReportCreateResponse>
+
+    @PUT("users/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<ChangePasswordResponse>
+
     @PATCH("users/fcm-token")
     suspend fun updateFcmToken(@Body request: FcmTokenRequest): Response<AuthResponse>
 
@@ -116,4 +151,52 @@ interface RideMadaApi {
 
     @POST("reviews")
     suspend fun submitReview(@Body request: ReviewRequest): Response<ReviewResponse>
+
+    @POST("ride-requests")
+    suspend fun createRideRequest(@Body request: CreateRideRequestBody): Response<RideRequestResponse>
+
+    @GET("ride-requests/my")
+    suspend fun getMyRideRequests(): Response<RideRequestsResponse>
+
+    @GET("ride-requests/pending")
+    suspend fun getPendingRideRequests(
+        @Query("lat") lat: Double? = null,
+        @Query("lng") lng: Double? = null,
+    ): Response<RideRequestsResponse>
+
+    @GET("ride-requests/{id}")
+    suspend fun getRideRequest(@Path("id") id: String): Response<RideRequestResponse>
+
+    @PUT("ride-requests/{id}/accept")
+    suspend fun acceptRideRequest(@Path("id") id: String): Response<RideRequestResponse>
+
+    @PUT("ride-requests/{id}/arriving")
+    suspend fun driverArriving(@Path("id") id: String): Response<RideRequestResponse>
+
+    @PUT("ride-requests/{id}/start")
+    suspend fun startRideRequest(@Path("id") id: String): Response<RideRequestResponse>
+
+    @PUT("ride-requests/{id}/complete")
+    suspend fun completeRideRequest(@Path("id") id: String): Response<RideRequestResponse>
+
+    @PUT("ride-requests/{id}/cancel")
+    suspend fun cancelRideRequest(@Path("id") id: String): Response<RideRequestResponse>
+
+    @GET("ride-requests/driver/active")
+    suspend fun getDriverActiveRide(): Response<RideRequestResponse>
+
+    @GET("ride-requests/driver/history")
+    suspend fun getDriverRideHistory(): Response<DriverRideHistoryResponse>
+
+    @POST("payments/initiate")
+    suspend fun initiatePayment(@Body request: PaymentInitRequest): Response<PaymentResponse>
+
+    @POST("payments/confirm-cash")
+    suspend fun confirmCashPayment(@Body request: PaymentConfirmRequest): Response<PaymentResponse>
+
+    @GET("payments/history")
+    suspend fun getPaymentHistory(): Response<PaymentsHistoryResponse>
+
+    @GET("payments/{id}/status")
+    suspend fun getPaymentStatus(@Path("id") id: String): Response<PaymentResponse>
 }

@@ -142,7 +142,77 @@ data class BecomeDriverRequest(
     val type: String? = "SEDAN",
 )
 
+data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
+
+data class ChangePasswordResponse(val success: Boolean, val message: String? = null)
+
 data class UpdateProfileRequest(val name: String? = null, val email: String? = null)
+
+data class FavoriteDto(
+    val id: String,
+    val type: String,
+    val targetId: String? = null,
+    val label: String? = null,
+    val address: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+)
+
+data class FavoriteRequest(
+    val type: String,
+    val label: String? = null,
+    val address: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val targetId: String? = null,
+)
+
+data class FavoritesResponse(val success: Boolean, val favorites: List<FavoriteDto>? = null)
+
+data class ReportRequest(val reportedId: String, val reason: String)
+
+data class ReportCreateResponse(val success: Boolean, val report: ReportDto? = null)
+
+data class GeocodeResponse(
+    val success: Boolean,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val formattedAddress: String? = null,
+)
+
+data class AutocompleteSuggestion(
+    val description: String,
+    val placeId: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+)
+
+data class AutocompleteResponse(val success: Boolean, val suggestions: List<AutocompleteSuggestion>? = null)
+
+data class ReverseGeocodeResponse(
+    val success: Boolean,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val formattedAddress: String? = null,
+)
+
+data class DirectionsResponse(
+    val success: Boolean,
+    val route: RouteDto? = null,
+    val message: String? = null,
+)
+
+data class RouteDto(
+    val distanceKm: Double,
+    val durationMin: Int,
+    val geometry: GeometryDto? = null,
+    val polyline: String? = null,
+)
+
+data class GeometryDto(
+    val coordinates: List<List<Double>>? = null,
+)
+
 
 data class ProfileResponse(val success: Boolean, val user: UserDto?)
 
@@ -273,3 +343,82 @@ data class ReviewRequest(
 )
 
 data class ReviewResponse(val success: Boolean, val message: String? = null)
+
+data class CreateRideRequestBody(
+    val pickupLat: Double,
+    val pickupLng: Double,
+    val pickupAddress: String,
+    val dropoffLat: Double,
+    val dropoffLng: Double,
+    val dropoffAddress: String,
+    val vehicleType: String = "SEDAN",
+    val scheduledAt: String? = null,
+    val couponCode: String? = null,
+)
+
+data class RideRequestDto(
+    val id: String,
+    val pickupAddress: String,
+    val dropoffAddress: String,
+    val pickupLat: Double,
+    val pickupLng: Double,
+    val dropoffLat: Double,
+    val dropoffLng: Double,
+    val vehicleType: String,
+    val estimatedPrice: Double,
+    val finalPrice: Double? = null,
+    val status: String,
+    val passenger: UserDto? = null,
+    val driver: DriverDto? = null,
+)
+
+data class RideRequestResponse(
+    val success: Boolean,
+    val rideRequest: RideRequestDto? = null,
+    val message: String? = null,
+)
+
+data class RideRequestsResponse(
+    val success: Boolean,
+    val rideRequests: List<RideRequestDto>? = null,
+)
+
+data class PaymentInitRequest(
+    val rideRequestId: String? = null,
+    val bookingId: String? = null,
+    val method: String = "CASH",
+    val phone: String? = null,
+)
+
+data class PaymentConfirmRequest(
+    val rideRequestId: String? = null,
+    val bookingId: String? = null,
+)
+
+data class PaymentDto(
+    val id: String,
+    val amount: Double,
+    val method: String,
+    val status: String,
+    val rideRequestId: String? = null,
+    val bookingId: String? = null,
+)
+
+data class PaymentResponse(
+    val success: Boolean,
+    val payment: PaymentDto? = null,
+    val message: String? = null,
+    val instructions: String? = null,
+    val transactionRef: String? = null,
+)
+
+data class PaymentsHistoryResponse(
+    val success: Boolean,
+    val payments: List<PaymentDto>? = null,
+)
+
+data class DriverRideHistoryResponse(
+    val success: Boolean,
+    val rideRequests: List<RideRequestDto>? = null,
+    val sharedRides: List<RideDto>? = null,
+)

@@ -1,56 +1,58 @@
-import admin from 'firebase-admin';
+import type { Response } from 'express';
+import type { AuthRequest } from '../types/authRequest';
 import prisma from '../config/db';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(require('../config/firebase-service-account.json'))
-  });
-}
+import admin from '../config/firebase';
 
 export class NotificationService {
+  static async createInAppNotification(
+    userId: string,
+    title: string,
+    body: string,
+    type: string = 'INFO',
+  ) {
+    return prisma.notification.create({
+      data: { userId, title, body, type },
+    });
+  }
 
-  static async sendPushNotification(userId: string, title: string, body: string, data: any = {}) {
+  static async sendPushNotification(
+    userId: string,
+    title: string,
+    body: string,
+    data: Record<string, string> = {},
+  ) {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { fcmToken: true }
+        select: { fcmToken: true },
       });
-
       if (!user?.fcmToken) return;
 
-      const message = {
+      await admin.messaging().send({
         token: user.fcmToken,
         notification: { title, body },
-        data: { ...data, click_action: "FLUTTER_NOTIFICATION_CLICK" },
-        android: { priority: 'high' as const },
-        apns: { headers: { 'apns-priority': '10' } }
-      };
-
-      await admin.messaging().send(message);
+        data: { ...data, type: data.type ?? 'INFO' },
+        android: { priority: 'high' },
+      });
     } catch (error) {
-      console.error('FCM Error:', error);
+      console.error('[FCM]', error);
     }
   }
 
-  // Notifications spécifiques RideMada
-  static async notifyNewBooking(rideId: string, passengerName: string) {
+  static async notifyNewBooking(rideId: string, passengerName: string, seats: number) {
     const ride = await prisma.ride.findUnique({
       where: { id: rideId },
-      include: { driver: { include: { user: true } } }
+      include: { driver: { include: { user: true } } },
     });
+    if (!ride?.driver?.user) return;
 
-    if (ride?.driver?.user) {
-      await this.sendPushNotification(
-        ride.driver.user.id,
-        "Nouvelle réservation !",
-        `${passengerName} a réservé ${ride.availableSeats} place(s)`,
-        { type: "NEW_BOOKING", rideId }
-      );
-    }
-  }
-
-  static async notifyDriverArrived(rideId: string) {
-    // Notifier tous les passagers du trajet
+    const title = 'Nouvelle réservation';
+    const body = `${passengerName} a réservé ${seats} place(s)`;
+    await this.createInAppNotification(ride.driver.user.id, title, body, 'RIDE_UPDATE');
+    await this.sendPushNotification(ride.driver.user.id, title, body, {
+      type: 'NEW_BOOKING',
+      rideId,
+    });
   }
 }
 

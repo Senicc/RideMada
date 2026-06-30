@@ -14,18 +14,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.ridemada.presentation.components.RideMadaButton
 import com.ridemada.presentation.navigation.Screen
+import com.ridemada.presentation.viewmodel.PaymentViewModel
 import com.ridemada.ui.theme.BrandAccent
 
 @Composable
 fun PaymentScreen(
+    rideRequestId: String,
     amount: Int,
+    driverId: String,
     navController: NavHostController,
+    viewModel: PaymentViewModel = hiltViewModel(),
 ) {
     var selectedMethod by remember { mutableStateOf("CASH") }
-    var paid by remember { mutableStateOf(false) }
+    var mobilePhone by remember { mutableStateOf("") }
+    val state by viewModel.state.collectAsState()
+    val needsPhone = selectedMethod != "CASH"
 
     Column(
         modifier = Modifier
@@ -54,9 +61,47 @@ fun PaymentScreen(
         PaymentMethod("Orange Money", Icons.Default.AccountBalanceWallet, "ORANGE", selectedMethod) { selectedMethod = it }
         PaymentMethod("Airtel Money", Icons.Default.SimCard, "AIRTEL", selectedMethod) { selectedMethod = it }
 
+        if (needsPhone) {
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = mobilePhone,
+                onValueChange = { mobilePhone = it },
+                label = { Text("Numéro Mobile Money") },
+                placeholder = { Text("034 XX XXX XX") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+        }
+
+        state.instructions?.let { instructions ->
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(colors = CardDefaults.cardColors(containerColor = BrandAccent.copy(alpha = 0.1f))) {
+                Text(
+                    instructions,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
+        if (state.isPolling) {
+            Spacer(modifier = Modifier.height(12.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Text(
+                "En attente de confirmation sur votre téléphone...",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+
+        state.error?.let {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(it, color = MaterialTheme.colorScheme.error)
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
-        if (paid) {
+        if (state.isPaid) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = BrandAccent.copy(alpha = 0.15f)),
@@ -67,22 +112,31 @@ fun PaymentScreen(
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = BrandAccent)
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("Paiement simulé avec succès", fontWeight = FontWeight.SemiBold)
+                    Text("Paiement confirmé", fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
             RideMadaButton(
                 text = "Noter le chauffeur",
                 onClick = {
-                    navController.navigate(Screen.Rating.createRoute("driver-demo")) {
+                    navController.navigate(Screen.Rating.createRoute(driverId)) {
                         popUpTo(Screen.Home.route) { inclusive = false }
                     }
                 },
             )
         } else {
             RideMadaButton(
-                text = "Confirmer le paiement",
-                onClick = { paid = true },
+                text = when {
+                    state.isLoading -> "Traitement..."
+                    state.isPolling -> "Vérification..."
+                    else -> "Confirmer le paiement"
+                },
+                onClick = {
+                    viewModel.processPayment(rideRequestId, selectedMethod, mobilePhone) { }
+                },
+                enabled = !state.isLoading && !state.isPolling && rideRequestId.isNotBlank() &&
+                    (!needsPhone || mobilePhone.length >= 9),
+                isLoading = state.isLoading,
             )
         }
     }

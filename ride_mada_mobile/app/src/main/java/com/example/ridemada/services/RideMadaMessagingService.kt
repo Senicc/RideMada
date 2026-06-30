@@ -50,6 +50,7 @@ class RideMadaMessagingService : FirebaseMessagingService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("rideId", data["rideId"])
+            putExtra("rideRequestId", data["rideRequestId"])
             putExtra("notification_type", data["type"])
         }
         val pending = PendingIntent.getActivity(

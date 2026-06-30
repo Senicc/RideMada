@@ -1,6 +1,8 @@
 package com.ridemada.services
 
 import com.ridemada.BuildConfig
+import com.ridemada.data.remote.dto.RideRequestDto
+import com.google.gson.Gson
 import io.socket.client.IO
 import io.socket.client.Socket
 import org.json.JSONObject
@@ -12,6 +14,7 @@ class SocketService @Inject constructor() {
 
     private var socket: Socket? = null
     private var connectedToken: String? = null
+    private val gson = Gson()
 
     @Synchronized
     fun connect(authToken: String, baseUrl: String = BuildConfig.SOCKET_URL) {
@@ -56,6 +59,10 @@ class SocketService @Inject constructor() {
         socket?.emit("joinRideRoom", rideId)
     }
 
+    fun joinRideRequestRoom(rideRequestId: String) {
+        socket?.emit("joinRideRequestRoom", rideRequestId)
+    }
+
     @Synchronized
     fun disconnect() {
         socket?.off()
@@ -74,6 +81,33 @@ class SocketService @Inject constructor() {
     fun setOnNewMessage(listener: (JSONObject) -> Unit) {
         socket?.off("newMessage")
         socket?.on("newMessage") { args ->
+            if (args.isNotEmpty()) listener(args[0] as JSONObject)
+        }
+    }
+
+    fun setOnRideRequestAccepted(listener: (RideRequestDto) -> Unit) {
+        socket?.off("rideRequestAccepted")
+        socket?.on("rideRequestAccepted") { args ->
+            if (args.isEmpty()) return@on
+            val json = args[0].toString()
+            runCatching { gson.fromJson(json, RideRequestDto::class.java) }
+                .onSuccess(listener)
+        }
+    }
+
+    fun setOnNewRideRequest(listener: (RideRequestDto) -> Unit) {
+        socket?.off("newRideRequest")
+        socket?.on("newRideRequest") { args ->
+            if (args.isEmpty()) return@on
+            val json = args[0].toString()
+            runCatching { gson.fromJson(json, RideRequestDto::class.java) }
+                .onSuccess(listener)
+        }
+    }
+
+    fun setOnRideRequestStatusUpdate(listener: (JSONObject) -> Unit) {
+        socket?.off("rideRequestStatusUpdate")
+        socket?.on("rideRequestStatusUpdate") { args ->
             if (args.isNotEmpty()) listener(args[0] as JSONObject)
         }
     }

@@ -40,11 +40,26 @@ const express_1 = require("express");
 const multer_1 = __importDefault(require("multer"));
 const userController = __importStar(require("../controllers/user.controller"));
 const auth_1 = require("../middlewares/auth");
-const upload = (0, multer_1.default)({ dest: 'uploads/' });
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
+const upload = (0, multer_1.default)({
+    storage: multer_1.default.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith('image/'))
+            cb(null, true);
+        else
+            cb(new Error('Seules les images sont autorisées'));
+    },
+});
 const router = (0, express_1.Router)();
-router.get('/profile', auth_1.authenticateJWT, userController.getProfile);
-router.put('/profile', auth_1.authenticateJWT, upload.single('photo'), userController.updateProfile);
-router.get('/history', auth_1.authenticateJWT, userController.getActivityHistory);
-router.get('/favorites', auth_1.authenticateJWT, userController.getFavorites);
+router.use(auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser);
+router.get('/profile', userController.getProfile);
+router.put('/profile', upload.single('photo'), userController.updateProfile);
+router.get('/history', userController.getActivityHistory);
+router.get('/favorites', userController.getFavorites);
+router.post('/favorites', userController.addFavorite);
+router.delete('/favorites/:id', userController.deleteFavorite);
+router.patch('/fcm-token', userController.updateFcmToken);
+router.put('/change-password', userController.changePassword);
 exports.default = router;
 //# sourceMappingURL=user.routes.js.map

@@ -37,26 +37,40 @@ const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const rideController = __importStar(require("../controllers/ride.controller"));
 const auth_1 = require("../middlewares/auth");
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
 const role_1 = require("../middlewares/role");
+const validation_1 = require("../middlewares/validation");
 const router = (0, express_1.Router)();
-router.post('/', [
-    auth_1.authenticateJWT,
-    (0, role_1.authorizeRoles)('DRIVER'),
+router.post('/', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), [
     (0, express_validator_1.body)('departureLat').isFloat(),
     (0, express_validator_1.body)('departureLng').isFloat(),
     (0, express_validator_1.body)('arrivalLat').isFloat(),
     (0, express_validator_1.body)('arrivalLng').isFloat(),
+    (0, express_validator_1.body)('departureAddress').notEmpty(),
+    (0, express_validator_1.body)('arrivalAddress').notEmpty(),
+    (0, express_validator_1.body)('departureTime').notEmpty(),
+    (0, express_validator_1.body)('vehicleId').isUUID(),
     (0, express_validator_1.body)('price').isFloat({ min: 1000 }),
     (0, express_validator_1.body)('availableSeats').isInt({ min: 1 }),
-], rideController.createRide);
+], validation_1.validate, rideController.createRide);
 router.get('/nearby', [
     (0, express_validator_1.query)('lat').isFloat(),
     (0, express_validator_1.query)('lng').isFloat(),
-], rideController.getNearbyRides);
-router.get('/nearby-drivers', rideController.findNearbyDrivers);
+], validation_1.validate, rideController.getNearbyRides);
+router.get('/estimate-fare', [
+    (0, express_validator_1.query)('departureLat').isFloat(),
+    (0, express_validator_1.query)('departureLng').isFloat(),
+    (0, express_validator_1.query)('arrivalLat').isFloat(),
+    (0, express_validator_1.query)('arrivalLng').isFloat(),
+    (0, express_validator_1.query)('vehicleType').optional().isIn(['SEDAN', 'SUV', 'MINIBUS', 'MOTORCYCLE']),
+], validation_1.validate, rideController.estimateFare);
+router.get('/nearby-drivers', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, [
+    (0, express_validator_1.query)('lat').optional().isFloat(),
+    (0, express_validator_1.query)('lng').optional().isFloat(),
+], validation_1.validate, rideController.findNearbyDrivers);
 router.get('/:id', rideController.getRideById);
-router.put('/:id', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), rideController.updateRide);
-router.delete('/:id', auth_1.authenticateJWT, (0, role_1.authorizeRoles)('DRIVER'), rideController.cancelRide);
-router.get('/', rideController.getAllRides); // Avec filtres
+router.put('/:id', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), rideController.updateRide);
+router.delete('/:id', auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser, (0, role_1.authorizeRoles)('DRIVER'), rideController.cancelRide);
+router.get('/', rideController.getAllRides);
 exports.default = router;
 //# sourceMappingURL=ride.routes.js.map

@@ -39,6 +39,13 @@ export const createRide = async (req: AuthRequest, res: Response) => {
       vehicleId,
     } = req.body;
 
+    const vehicle = await prisma.vehicle.findFirst({
+      where: { id: vehicleId, driverId: driver.id, isActive: true },
+    });
+    if (!vehicle) {
+      return res.status(400).json({ success: false, message: 'Véhicule invalide ou non autorisé' });
+    }
+
     const ride = await prisma.ride.create({
       data: {
         driverId: driver.id,
@@ -195,9 +202,15 @@ export const cancelRide = async (req: AuthRequest, res: Response) => {
     return res.status(403).json({ success: false, message: 'Accès refusé' });
   }
 
-  const ride = await prisma.ride.update({
-    where: { id },
-    data: { status: 'CANCELLED' },
+  const ride = await prisma.$transaction(async (tx) => {
+    await tx.booking.updateMany({
+      where: { rideId: id, status: 'CONFIRMED' },
+      data: { status: 'CANCELLED' },
+    });
+    return tx.ride.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
   });
 
   res.json({ success: true, ride: serializeRide(ride) });

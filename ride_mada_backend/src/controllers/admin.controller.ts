@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../config/db';
 import { publicUserSelect } from '../utils/userPublic';
+import { logAdminAction } from '../utils/adminLog';
+import type { AuthRequest } from '../types/authRequest';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   const users = await prisma.user.findMany({
@@ -24,6 +26,7 @@ export const getPendingDrivers = async (req: Request, res: Response) => {
 };
 
 export const approveDriver = async (req: Request, res: Response) => {
+  const adminId = (req as AuthRequest).user?.id;
   const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0];
   if (!id) {
     return res.status(400).json({ success: false, message: 'Identifiant conducteur manquant' });
@@ -37,7 +40,31 @@ export const approveDriver = async (req: Request, res: Response) => {
     where: { id: driver.userId },
     data: { role: 'DRIVER' },
   });
+
+  if (adminId) {
+    await logAdminAction(adminId, 'APPROVE_DRIVER', id);
+  }
+
   res.json({ success: true, driver });
+};
+
+export const rejectDriver = async (req: Request, res: Response) => {
+  const adminId = (req as AuthRequest).user?.id;
+  const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0];
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'Identifiant conducteur manquant' });
+  }
+
+  const driver = await prisma.driver.delete({ where: { id } }).catch(() => null);
+  if (!driver) {
+    return res.status(404).json({ success: false, message: 'Conducteur introuvable' });
+  }
+
+  if (adminId) {
+    await logAdminAction(adminId, 'REJECT_DRIVER', id);
+  }
+
+  res.json({ success: true, message: 'Candidature rejetée' });
 };
 
 export const getStatistics = async (_req: Request, res: Response) => {
@@ -134,6 +161,7 @@ export const unblockUser = async (req: Request, res: Response) => {
 };
 
 export const blockUser = async (req: Request, res: Response) => {
+  const adminId = (req as AuthRequest).user?.id;
   const id = typeof req.params.id === 'string' ? req.params.id : req.params.id?.[0];
   if (!id) {
     return res.status(400).json({ success: false, message: 'Identifiant utilisateur manquant' });
@@ -145,5 +173,101 @@ export const blockUser = async (req: Request, res: Response) => {
     select: { id: true, name: true, phone: true, isBlocked: true },
   });
 
+  if (adminId) {
+    await logAdminAction(adminId, 'BLOCK_USER', id);
+  }
+
   res.json({ success: true, message: 'Utilisateur bloqué', user });
+};
+
+export const getPayments = async (_req: Request, res: Response) => {
+  const payments = await prisma.payment.findMany({
+    take: 100,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { id: true, name: true, phone: true } },
+      booking: { include: { ride: true } },
+      rideRequest: true,
+    },
+  });
+
+  res.json({
+    success: true,
+    payments: payments.map((p) => ({ ...p, amount: Number(p.amount) })),
+  });
+};
+
+export const getAdminLogs = async (_req: Request, res: Response) => {
+  const logs = await prisma.adminLog.findMany({
+    take: 100,
+    orderBy: { createdAt: 'desc' },
+    include: { admin: { select: { id: true, name: true } } },
+  });
+  res.json({ success: true, logs });
+};
+
+function csvEscape(value: string | number | null | undefined): string {
+  const str = String(value ?? '');
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
+export const exportPaymentsCsv = async (_req: Request, res: Response) => {
+  const payments = await prisma.payment.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { user: { select: { name: true, phone: true } } },
+  });
+
+  const header = 'ID,Utilisateur,Telephone,Montant,Methode,Statut,Date\n';
+  const rows = payments
+    .map((p) =>
+      [
+        csvEscape(p.id),
+        csvEscape(p.user.name),
+        csvEscape(p.user.phone),
+        csvEscape(Number(p.amount)),
+        csvEscape(p.method),
+        csvEscape(p.status),
+        csvEscape(p.createdAt.toISOString()),
+      ].join(','),
+    )
+    .join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename=ridemada-payments.csv');
+  res.send(`\uFEFF${header}${rows}`);
+};
+
+export const exportUsersCsv = async (_req: Request, res: Response) => {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      role: true,
+      isBlocked: true,
+      createdAt: true,
+      driver: { select: { isApproved: true, status: true } },
+    },
+  });
+
+  const header = 'ID,Nom,Telephone,Role,Bloque,Chauffeur,Statut chauffeur,Date inscription\n';
+  const rows = users
+    .map((u) =>
+      [
+        csvEscape(u.id),
+        csvEscape(u.name),
+        csvEscape(u.phone),
+        csvEscape(u.role),
+        csvEscape(u.isBlocked ? 'Oui' : 'Non'),
+        csvEscape(u.driver ? (u.driver.isApproved ? 'Approuve' : 'En attente') : '—'),
+        csvEscape(u.driver?.status ?? '—'),
+        csvEscape(u.createdAt.toISOString()),
+      ].join(','),
+    )
+    .join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename=ridemada-users.csv');
+  res.send(`\uFEFF${header}${rows}`);
 };

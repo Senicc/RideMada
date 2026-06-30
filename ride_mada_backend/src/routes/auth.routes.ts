@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
 import * as authController from '../controllers/auth.controller';
+import * as bootstrapController from '../controllers/bootstrap.controller';
 import { validate } from '../middlewares/validation';
 import { authRateLimit } from '../middlewares/rateLimit';
 
 const router = Router();
+
+router.post('/bootstrap-admin', bootstrapController.bootstrapAdmin);
 
 router.use(authRateLimit);
 

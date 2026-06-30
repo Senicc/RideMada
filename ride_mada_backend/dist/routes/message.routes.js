@@ -36,8 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const messageController = __importStar(require("../controllers/message.controller"));
 const auth_1 = require("../middlewares/auth");
+const ensureActiveUser_1 = require("../middlewares/ensureActiveUser");
 const router = (0, express_1.Router)();
-router.get('/chat/:userId', auth_1.authenticateJWT, messageController.getChatHistory);
-router.post('/', auth_1.authenticateJWT, messageController.sendMessage);
+router.use(auth_1.authenticateJWT, ensureActiveUser_1.ensureActiveUser);
+router.get('/chat/:userId', messageController.getChatHistory);
+router.post('/', messageController.sendMessage);
 exports.default = router;
 //# sourceMappingURL=message.routes.js.map

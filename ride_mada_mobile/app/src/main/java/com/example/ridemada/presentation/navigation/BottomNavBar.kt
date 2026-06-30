@@ -53,7 +53,10 @@ fun RideMadaBottomBar(
         else -> passengerNavItems
     }
 
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 8.dp) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
+    ) {
         items.forEach { item ->
             NavigationBarItem(
                 selected = currentRoute == item.screen.route,
@@ -65,12 +68,14 @@ fun RideMadaBottomBar(
                     }
                 },
                 icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
+                label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
                 alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             )
         }

@@ -11,13 +11,27 @@ interface SocketUser {
 type AuthedSocket = Socket & { user: SocketUser };
 
 async function userCanAccessRide(userId: string, rideId: string): Promise<boolean> {
+  // 1. Check shared rides (Ride table)
   const ride = await prisma.ride.findUnique({
     where: { id: rideId },
     include: { driver: true, bookings: { where: { status: 'CONFIRMED' } } },
   });
-  if (!ride) return false;
-  if (ride.driver.userId === userId) return true;
-  return ride.bookings.some((b) => b.passengerId === userId);
+  if (ride) {
+    if (ride.driver.userId === userId) return true;
+    return ride.bookings.some((b) => b.passengerId === userId);
+  }
+
+  // 2. Check on-demand ride requests (RideRequest table)
+  const rideRequest = await prisma.rideRequest.findUnique({
+    where: { id: rideId },
+    include: { driver: true },
+  });
+  if (rideRequest) {
+    if (rideRequest.passengerId === userId) return true;
+    if (rideRequest.driver?.userId === userId) return true;
+  }
+
+  return false;
 }
 
 async function userIsRideDriver(userId: string, rideId: string): Promise<boolean> {
@@ -62,6 +76,7 @@ export const initializeSocket = (io: Server) => {
 
         if (data.rideId) {
           io.to(`ride_${data.rideId}`).emit('driverLocationUpdate', payload);
+          io.to(`ride_request_${data.rideId}`).emit('driverLocationUpdate', payload);
         } else {
           socket.broadcast.emit('driverLocationUpdate', payload);
         }
@@ -77,6 +92,23 @@ export const initializeSocket = (io: Server) => {
       }
       socket.join(`ride_${rideId}`);
       socket.emit('joinedRoom', { rideId });
+    });
+
+    socket.on('joinRideRequestRoom', async (rideRequestId: string) => {
+      if (!rideRequestId) return;
+      const request = await prisma.rideRequest.findUnique({
+        where: { id: rideRequestId },
+        include: { driver: true },
+      });
+      if (!request) return;
+      const isPassenger = request.passengerId === user.id;
+      const isDriver = request.driver?.userId === user.id;
+      if (!isPassenger && !isDriver && user.role !== 'ADMIN') {
+        socket.emit('error', { message: 'Accès refusé' });
+        return;
+      }
+      socket.join(`ride_request_${rideRequestId}`);
+      socket.emit('joinedRoom', { rideRequestId });
     });
 
     socket.on('sendMessage', async (data: { receiverId: string; rideId?: string; content: string }) => {
@@ -110,6 +142,7 @@ export const initializeSocket = (io: Server) => {
 
     socket.on('driverStartedRide', async (rideId: string) => {
       if (await userIsRideDriver(user.id, rideId)) {
+        await prisma.ride.update({ where: { id: rideId }, data: { status: 'ACTIVE' } });
         io.to(`ride_${rideId}`).emit('rideStarted', { rideId, driverId: user.id });
       }
     });
@@ -122,9 +155,12 @@ export const initializeSocket = (io: Server) => {
 
     socket.on('rideCompleted', async (rideId: string) => {
       if (!(await userIsRideDriver(user.id, rideId))) return;
-      await prisma.ride.update({
-        where: { id: rideId },
-        data: { status: 'COMPLETED' },
+      await prisma.$transaction(async (tx) => {
+        await tx.ride.update({ where: { id: rideId }, data: { status: 'COMPLETED' } });
+        await tx.booking.updateMany({
+          where: { rideId, status: 'CONFIRMED' },
+          data: { status: 'COMPLETED' },
+        });
       });
       io.to(`ride_${rideId}`).emit('rideCompleted', { rideId });
     });
@@ -145,6 +181,8 @@ export const initializeSocket = (io: Server) => {
     socket.on('disconnect', async () => {
       if (user.role !== 'DRIVER') return;
       try {
+        const driver = await prisma.driver.findUnique({ where: { userId: user.id } });
+        if (driver?.status === 'ON_RIDE') return;
         await prisma.driver.update({
           where: { userId: user.id },
           data: { status: 'OFFLINE' },

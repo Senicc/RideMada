@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +24,9 @@ import com.ridemada.presentation.components.ConnectionStatusBar
 import com.ridemada.presentation.navigation.RideMadaBottomBar
 import com.ridemada.presentation.navigation.RideMadaNavHost
 import com.ridemada.presentation.navigation.Screen
+import com.ridemada.data.local.ThemeMode
 import com.ridemada.presentation.viewmodel.MainViewModel
+import com.ridemada.presentation.viewmodel.SettingsViewModel
 import com.ridemada.ui.theme.RideMadaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -33,7 +36,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            RideMadaTheme {
+            val settingsViewModel: SettingsViewModel = hiltViewModel()
+            val themeMode by settingsViewModel.themeMode.collectAsState()
+            val darkTheme = when (themeMode) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            RideMadaTheme(darkTheme = darkTheme) {
                 val navController = rememberNavController()
                 val mainViewModel: MainViewModel = hiltViewModel()
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
@@ -65,6 +75,20 @@ class MainActivity : ComponentActivity() {
                         notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
                     mainViewModel.syncFcmToken()
+
+                    val rideRequestId = intent?.getStringExtra("rideRequestId")
+                    val notificationType = intent?.getStringExtra("notification_type")
+                    when {
+                        !rideRequestId.isNullOrBlank() -> {
+                            navController.navigate(Screen.DriverRides.route)
+                        }
+                        notificationType == "NEW_BOOKING" -> {
+                            navController.navigate(Screen.DriverRides.route)
+                        }
+                        !intent?.getStringExtra("rideId").isNullOrBlank() -> {
+                            navController.navigate(Screen.Bookings.route)
+                        }
+                    }
                 }
 
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
